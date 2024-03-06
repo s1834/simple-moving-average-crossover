@@ -32,46 +32,74 @@ def connectSQL(username, passkey):
     cursor.close()
     conn.close()
 
-def calculateSMA(days, username, passkey):
+def calculateSMA(username, passkey, days):
     try:
+        # Connect to MySQL database
         conn = mysql.connector.connect(
         host='localhost',
         user=username,
         password=passkey,
         database='hindalco'
         )
-        sql = "SELECT close FROM financial_data;"
+
+        # Get close and dates
+        sql = "SELECT close, datetime FROM financial_data;"
         result = pd.read_sql(sql, conn)
         npResult = result['close'].to_numpy()
+        npDates = result['datetime'].to_numpy()
         
+        # iterate and get sma and corresponding dates
         ans1 = []
+        dates1 = []
         for i in range(0, npResult.size - days[0] + 1, 1):
             sum = 0
             for j in range(i,i + days[0], 1):
                 sum += npResult[j]
             ans1.append(sum / days[0])
+            dates1.append(npDates[i + days[0] // 2])
         ans1 = np.array(ans1)
 
         ans2 = []
+        dates2 = []
         for i in range(0, npResult.size - days[1] + 1, 1):
             sum = 0
             for j in range(i,i + days[1], 1):
                 sum += npResult[j]
             ans2.append(sum / days[1])
+            dates2.append(npDates[i + days[0] // 2])
+
+        # convert to numpy array for easy manipulation
         ans2 = np.array(ans2)
-        return ans1, ans2
+        dates1 = np.array(dates1)
+        dates2 = np.array(dates2)
         conn.close()
+        return dates1, dates2, ans1, ans2, npResult, npDates
+    # Handle Errors
     except Exception as e:
         conn.close()
         print(str(e))
 
 
-# #__main__
-# username = input("Enter MySQL username: ")
-# passkey = input("Enter password for " + username + ": ")
-username = "root"
-passkey = "shubh1234"
-# connectSQL(username, passkey)
-days = [50,100]
-sma1, sma2 = calculateSMA(days, username, passkey)
-print(sma1, sma2)
+# Plot the SMA's
+def plot(dates1, dates2, sma1, sma2, close, allDates):
+    plt.plot(allDates, close, label="Closing Price")
+    plt.plot(dates1, sma1, label='SMA1')
+    plt.plot(dates2, sma2, label='SMA2')
+    plt.xlabel('Date')
+    plt.ylabel('Moving Average')
+    plt.legend()
+    plt.show()
+
+#__main__
+# Get MySql Username, and password
+username = input("Enter MySQL username: ")
+passkey = input("Enter password for " + username + ": ")
+connectSQL(username, passkey)
+
+days = [10, 200]
+# Get SMA from user
+for i in range(len(days)):
+    days[i] = int(input("Enter SMA" + str(i + 1) + ": "))
+    
+dates1, dates2, sma1, sma2, close, allDates = calculateSMA(username, passkey,days)
+plot(dates1, dates2, sma1, sma2, close, allDates)
