@@ -1,5 +1,7 @@
 import pandas as pd
+import numpy as np
 import mysql.connector
+import matplotlib.pyplot as plt
 
 def connectSQL(username, passkey):
     # Read data
@@ -30,8 +32,46 @@ def connectSQL(username, passkey):
     cursor.close()
     conn.close()
 
+def calculateSMA(days, username, passkey):
+    try:
+        conn = mysql.connector.connect(
+        host='localhost',
+        user=username,
+        password=passkey,
+        database='hindalco'
+        )
+        sql = "SELECT close FROM financial_data;"
+        result = pd.read_sql(sql, conn)
+        npResult = result['close'].to_numpy()
+        
+        ans1 = []
+        for i in range(0, npResult.size - days[0] + 1, 1):
+            sum = 0
+            for j in range(i,i + days[0], 1):
+                sum += npResult[j]
+            ans1.append(sum / days[0])
+        ans1 = np.array(ans1)
 
-#__main__
-username = input("Enter MySQL username: ")
-passkey = input("Enter password for " + username + ": ")
-connectSQL(username, passkey);
+        ans2 = []
+        for i in range(0, npResult.size - days[1] + 1, 1):
+            sum = 0
+            for j in range(i,i + days[1], 1):
+                sum += npResult[j]
+            ans2.append(sum / days[1])
+        ans2 = np.array(ans2)
+        return ans1, ans2
+        conn.close()
+    except Exception as e:
+        conn.close()
+        print(str(e))
+
+
+# #__main__
+# username = input("Enter MySQL username: ")
+# passkey = input("Enter password for " + username + ": ")
+username = "root"
+passkey = "shubh1234"
+# connectSQL(username, passkey)
+days = [50,100]
+sma1, sma2 = calculateSMA(days, username, passkey)
+print(sma1, sma2)
